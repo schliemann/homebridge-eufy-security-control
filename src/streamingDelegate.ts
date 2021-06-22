@@ -184,10 +184,10 @@ export class EufyCameraStreamingDelegate implements CameraStreamingDelegate {
       };
     }
   
-    handleSnapshotRequest(
+    async handleSnapshotRequest(
       request: SnapshotRequest,
       callback: SnapshotRequestCallback,
-    ): void {
+    ): Promise<void> {
       const resolution = this.determineResolution(request, true);
   
       this.log.debug(
@@ -207,7 +207,8 @@ export class EufyCameraStreamingDelegate implements CameraStreamingDelegate {
       // get device info
     
       //   let ffmpegArgs = this.videoConfig.stillImageSource || this.videoConfig.source;
-      let ffmpegArgs = `-i ${this.device.getLastCameraImageURL().value}`;
+      const url = await this.device.startStream();
+      let ffmpegArgs = `-i ${url}`;
       this.log.debug('Thumbnail URL: ', ffmpegArgs);
   
       ffmpegArgs += // Still
@@ -243,6 +244,7 @@ export class EufyCameraStreamingDelegate implements CameraStreamingDelegate {
         });
       } catch (err) {
         this.log.error(err, this.cameraName);
+        await this.device.stopStream();
         callback(err);
       }
       
