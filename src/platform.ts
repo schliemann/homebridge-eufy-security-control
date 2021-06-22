@@ -33,7 +33,7 @@ import {
 } from 'eufy-security-client';
 // import { throws } from 'assert';
 import bunyan from 'bunyan';
-const eufyLog = bunyan.createLogger({ name: 'eufyLog' });
+const eufyLog = bunyan.createLogger({ name: 'eufyLog', level: 'trace' });
 
 interface DeviceIdentifier {
   uniqueId: string;
@@ -67,7 +67,7 @@ export class EufySecurityPlatform implements DynamicPlatformPlugin {
     this.eufyConfig = {
       username: this.config.username,
       password: this.config.password,
-      country: 'US',
+      country: 'DK',
       language: 'en',
       persistentDir: api.user.storagePath(),
       p2pConnectionSetup: 0,

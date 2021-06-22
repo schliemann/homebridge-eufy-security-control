@@ -22,12 +22,13 @@ import {
 import { spawn } from 'child_process';
 import { createSocket, Socket } from 'dgram';
 import ffmpegPath from 'ffmpeg-for-homebridge';
-import { Camera } from 'eufy-security-client';
+import { Camera, Station, StreamMetadata } from 'eufy-security-client';
 import { EufySecurityPlatform } from './platform';
 import getPort from 'get-port';
 import os from 'os';
 import { networkInterfaceDefault } from 'systeminformation';
 import { FfmpegProcess } from './ffmpeg';
+import { Readable } from 'stream';
   
   type SessionInfo = {
     address: string; // address of the HAP controller
@@ -58,6 +59,14 @@ import { FfmpegProcess } from './ffmpeg';
     returnProcess?: FfmpegProcess;
     timeout?: NodeJS.Timeout;
     socket?: Socket;
+  };
+
+  type StationStream = {
+    station: Station;
+    channel:number; 
+    metadata: StreamMetadata; 
+    videostream: Readable; 
+    audiostream: Readable;
   };
   
 export class EufyCameraStreamingDelegate implements CameraStreamingDelegate {
@@ -190,6 +199,24 @@ export class EufyCameraStreamingDelegate implements CameraStreamingDelegate {
     ): Promise<void> {
       const resolution = this.determineResolution(request, true);
   
+      // Here we create and await our promise:
+      const stream:StationStream = await new Promise((resolve, reject) => {
+        this.platform.eufyClient.startStationLivestream(this.device.getSerial());
+
+        // Here invoke our event emitter:
+        const station = this.platform.getStationById(this.device.getStationSerial());
+        // a normal event callback:
+        station.on('livestream start', (station: Station, channel:number, metadata: StreamMetadata, 
+          videostream: Readable, audiostream: Readable) =>{
+          if(this.platform.eufyClient.getStationDevice(station.getSerial(), channel).getSerial() === this.device.getSerial()){
+            const stationStream: StationStream = {station, channel, metadata, videostream, audiostream};
+            resolve(stationStream);
+          }
+        });
+      });
+
+      this.log.debug('Stream channel from station livestream ' + stream.channel.toString());
+      
       this.log.debug(
         'Snapshot requested: ' + request.width + ' x ' + request.height,
         this.cameraName,
@@ -244,8 +271,10 @@ export class EufyCameraStreamingDelegate implements CameraStreamingDelegate {
         });
       } catch (err) {
         this.log.error(err, this.cameraName);
-        await this.device.stopStream();
         callback(err);
+      } finally{
+        await this.device.stopStream();
+        this.platform.eufyClient.stopStationLivestream(this.device.getSerial());
       }
       
     }
