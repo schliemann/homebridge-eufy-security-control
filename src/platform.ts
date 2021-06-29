@@ -33,7 +33,7 @@ import {
 } from 'eufy-security-client';
 // import { throws } from 'assert';
 import bunyan from 'bunyan';
-const eufyLog = bunyan.createLogger({ name: 'eufyLog', level: 'trace' });
+const eufyLog = bunyan.createLogger({ name: 'eufyLog', level: 'info' });
 
 interface DeviceIdentifier {
   uniqueId: string;
