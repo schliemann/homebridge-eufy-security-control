@@ -99,7 +99,8 @@ export class EufyCameraStreamingDelegate implements CameraStreamingDelegate {
   
       this.cameraName = device.getName();
       this.videoProcessor = ffmpegPath || 'ffmpeg';
-  
+      process.env.FFMPEG_PATH = ffmpegPath;
+
       platform.api.on(APIEvent.SHUTDOWN, () => {
         for (const session in this.ongoingSessions) {
           this.stopStream(session);
@@ -234,22 +235,22 @@ export class EufyCameraStreamingDelegate implements CameraStreamingDelegate {
       );
   
       let videoFormat = 'h264';
-      const options = [
-        '-hls_init_time 0',
-        '-hls_time 2',
-        '-hls_segment_type mpegts',
-        '-absf aac_adtstoasc',
-        //"-start_number 1",
-        '-sc_threshold 0',
-        `-g ${streamData.metadata.videoFPS}`,
-        '-fflags genpts+nobuffer+flush_packets',
-        //"-flush_packets 1",
-        '-hls_playlist_type event',
-        //"-hls_flags split_by_time",
-        '-frag_size 1048576',
-        '-analyzeduration 2147483647',
-        '-probesize 2147483647',
-      ];
+      // const options = [
+      //   '-hls_init_time 0',
+      //   '-hls_time 2',
+      //   '-hls_segment_type mpegts',
+      //   '-absf aac_adtstoasc',
+      //   //"-start_number 1",
+      //   '-sc_threshold 0',
+      //   `-g ${streamData.metadata.videoFPS}`,
+      //   '-fflags genpts+nobuffer+flush_packets',
+      //   //"-flush_packets 1",
+      //   '-hls_playlist_type event',
+      //   //"-hls_flags split_by_time",
+      //   '-frag_size 1048576',
+      //   '-analyzeduration 2147483647',
+      //   '-probesize 2147483647',
+      // ];
       switch (streamData.metadata.videoCodec) {
         case VideoCodec.H264:
           videoFormat = 'h264';
@@ -259,94 +260,116 @@ export class EufyCameraStreamingDelegate implements CameraStreamingDelegate {
           break;
       }
 
-      let imageBuffer = Buffer.alloc(0);
+      // let imageBuffer = Buffer.alloc(0);
 
-      // get device info
-      ffmpeg.setFfmpegPath(ffmpegPath);      
+      // // get device info
+      // ffmpeg.setFfmpegPath(ffmpegPath);      
 
-      const command = ffmpeg()
-        .addOptions([
-          '-ss 0',
-          '-frames:v 1',
-        ])
-        .addOptions(options)
-        .input(streamData.videostream)
-        .inputFormat(videoFormat)
-        .inputFps(streamData.metadata.videoFPS)
-        // .videoCodec('copy')
-        .outputFormat('image2')
-        .outputOptions(['-movflags frag_keyframe+empty_moov'])
-        .on('error', (err, stdout, stderr) => {
-          this.log.error(`ffmpegPreviewImage(): An error occurred: ${err.message}`);
-          this.log.error(`ffmpegPreviewImage(): ffmpeg output:\n${stdout}`);
-          this.log.error(`ffmpegPreviewImage(): ffmpeg stderr:\n${stderr}`);
-          this.platform.eufyClient.stopStationLivestream(this.device.getSerial());
-          callback(err);
-        })
-        .on('end', (stdout, stderr) => {
-          this.log.debug('ffmpegPreviewImage(): Preview image generated!');
-          this.log.info('ffmpeg fluent end');
-          this.platform.eufyClient.stopStationLivestream(this.device.getSerial());
-        })
-        .on('close', (image) => {
-          this.log.info('ffmpeg fluent close');
-          this.platform.eufyClient.stopStationLivestream(this.device.getSerial());
-        })
-        .withSize(resolution.width+'x'+resolution.height)
-        .withNoAudio();
+      // const joiner = new Converter();
+      // const joinerInput = joiner.createInputStream({ f: 'mjpeg' });
 
-      const ffstream = command.pipe();
-      ffstream.on('data', (data: Uint8Array) => {
-        imageBuffer = Buffer.concat([imageBuffer, data]);
-      });
-      this.platform.eufyClient.stopStationLivestream(this.device.getSerial());
-      callback(undefined, imageBuffer);
+      // const converter = new Converter();
 
-      // //   let ffmpegArgs = this.videoConfig.stillImageSource || this.videoConfig.source;
-      // // const url = await this.device.startStream();
-      // // let ffmpegArgs = `-i ${url}`;
-      // let ffmpegArgs = `-i ${stream.videostream}`;
+      // // pipe video to splitter process
+      // streamData.videostream.pipe(converter.createInputStream({ f: videoFormat }));
+
+      // // get jpegs and pipe them to joiner process
+      // converter.createOutputStream({ f: 'mjpeg' }).pipe(joinerInput, { end: false });
+      // this.platform.eufyClient.stopStationLivestream(this.device.getSerial());
+      // await converter.run();
+
+      // const bufs = [];
+      // joinerInput.on('data', (d)=> {
+      //   imageBuffer = Buffer.concat([imageBuffer, d]);
+      // });
+      // joinerInput.on('end', ()=> {
+      //   const buf = Buffer.concat(bufs);
+      // });
+
+      // const command = ffmpeg()
+      //   .addOptions([
+      //     '-ss 0',
+      //     '-frames:v 1',
+      //   ])
+      //   .addOptions(options)
+      //   .input(streamData.videostream)
+      //   .inputFormat(videoFormat)
+      //   .inputFps(streamData.metadata.videoFPS)
+      //   // .videoCodec('copy')
+      //   .outputFormat('image2')
+      //   .outputOptions(['-movflags frag_keyframe+empty_moov'])
+      //   .on('error', (err, stdout, stderr) => {
+      //     this.log.error(`ffmpegPreviewImage(): An error occurred: ${err.message}`);
+      //     this.log.error(`ffmpegPreviewImage(): ffmpeg output:\n${stdout}`);
+      //     this.log.error(`ffmpegPreviewImage(): ffmpeg stderr:\n${stderr}`);
+      //     this.platform.eufyClient.stopStationLivestream(this.device.getSerial());
+      //     callback(err);
+      //   })
+      //   .on('end', (stdout, stderr) => {
+      //     this.log.debug('ffmpegPreviewImage(): Preview image generated!');
+      //     this.log.info('ffmpeg fluent end');
+      //     this.platform.eufyClient.stopStationLivestream(this.device.getSerial());
+      //   })
+      //   .on('close', (image) => {
+      //     this.log.info('ffmpeg fluent close');
+      //     this.platform.eufyClient.stopStationLivestream(this.device.getSerial());
+      //   })
+      //   .withSize(resolution.width+'x'+resolution.height)
+      //   .withNoAudio();
+
+      // const ffstream = command.pipe();
+      // ffstream.on('data', (data: Uint8Array) => {
+      //   imageBuffer = Buffer.concat([imageBuffer, data]);
+      // });
+
+      // callback(undefined, imageBuffer);
+
+      //   let ffmpegArgs = this.videoConfig.stillImageSource || this.videoConfig.source;
+      // const url = await this.device.startStream();
+      // let ffmpegArgs = `-i ${url}`;
+      let ffmpegArgs = '-i -';
       // this.log.debug('Thumbnail URL: ', ffmpegArgs);
   
-      // ffmpegArgs += // Still
-      //       ' -frames:v 1' +
-      //       (resolution.videoFilter
-      //         ? ' -filter:v ' + resolution.videoFilter
-      //         : '') +
-      //       ' -f image2 -';
+      ffmpegArgs += // Still
+            ' -frames:v 1' +
+            (resolution.videoFilter
+              ? ' -filter:v ' + resolution.videoFilter
+              : '') +
+            ' -f image2 -';
   
-      // try {
+      try {
+        const ffmpeg = spawn(this.videoProcessor, ffmpegArgs.split(/\s+/), {
+          env: process.env,
+        });
 
-      //   const ffmpeg = spawn(this.videoProcessor, ffmpegArgs.split(/\s+/), {
-      //     env: process.env,
-      //   });
-
-      //   let imageBuffer = Buffer.alloc(0);
-      //   this.log.debug(
-      //     'Snapshot command: ' + this.videoProcessor + ' ' + ffmpegArgs,
-      //     this.cameraName,
-      //     this.debug,
-      //   );
-      //   ffmpeg.stdout.on('data', (data: Uint8Array) => {
-      //     imageBuffer = Buffer.concat([imageBuffer, data]);
-      //   });
-      //   const log = this.log;
-      //   ffmpeg.on('error', (error: string) => {
-      //     log.error(
-      //       'An error occurred while making snapshot request: ' + error,
-      //       this.cameraName,
-      //     );
-      //   });
-      //   ffmpeg.on('close', () => {
-      //     this.platform.eufyClient.stopStationLivestream(this.device.getSerial());
-      //     callback(undefined, imageBuffer);
-      //   });
-      // } catch (err) {
-      //   this.log.error(err, this.cameraName);
-      //   // await this.device.stopStream();
-      //   this.platform.eufyClient.stopStationLivestream(this.device.getSerial());
-      //   callback(err);
-      // }      
+        streamData.videostream.pipe(ffmpeg.stdin);
+        
+        let imageBuffer = Buffer.alloc(0);
+        this.log.debug(
+          'Snapshot command: ' + this.videoProcessor + ' ' + ffmpegArgs,
+          this.cameraName,
+          this.debug,
+        );
+        ffmpeg.stdout.on('data', (data: Uint8Array) => {
+          imageBuffer = Buffer.concat([imageBuffer, data]);
+        });
+        const log = this.log;
+        ffmpeg.on('error', (error: string) => {
+          log.error(
+            'An error occurred while making snapshot request: ' + error,
+            this.cameraName,
+          );
+        });
+        ffmpeg.on('close', () => {
+          this.platform.eufyClient.stopStationLivestream(this.device.getSerial());
+          callback(undefined, imageBuffer);
+        });
+      } catch (err) {
+        this.log.error(err, this.cameraName);
+        // await this.device.stopStream();
+        this.platform.eufyClient.stopStationLivestream(this.device.getSerial());
+        callback(err);
+      }      
     }
 
     async getIpAddress(ipv6: boolean, interfaceName?: string): Promise<string> {
