@@ -362,12 +362,14 @@ export class EufyCameraStreamingDelegate implements CameraStreamingDelegate {
         });
         ffmpeg.on('close', () => {
           this.platform.eufyClient.stopStationLivestream(this.device.getSerial());
+          this.log.info('Stopping livestream for '+ this.cameraName);
           callback(undefined, imageBuffer);
         });
       } catch (err) {
         this.log.error(err, this.cameraName);
         // await this.device.stopStream();
         this.platform.eufyClient.stopStationLivestream(this.device.getSerial());
+        this.log.info('Stopping livestream for '+ this.cameraName);
         callback(err);
       }      
     }
