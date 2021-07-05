@@ -335,6 +335,9 @@ export class EufyCameraStreamingDelegate implements CameraStreamingDelegate {
             (resolution.videoFilter
               ? ' -filter:v ' + resolution.videoFilter
               : '') +
+            ' -vf eq=brightness=0.1:saturation=2 ' +
+            // ' -pix_fmt yuv420p' +
+            // ' -color_range mpeg' +
             ' -f image2 -';
   
       try {
